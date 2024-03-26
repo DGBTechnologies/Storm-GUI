@@ -1,0 +1,56 @@
+version: "3.0"
+services:
+  rabbitmq-ma:
+    image: rabbitmq:3-management
+    container_name: rabbitmq-ma
+    ports:
+      - 15682:15672
+      - 15684:15674
+    volumes:
+      - ./rabbitmq/enabled_plugins:/etc/rabbitmq/enabled_plugins
+    restart: always
+
+  stormpy-service-api-ma:
+    platform: linux/amd64
+    image: dgbtechnologies/stormpy-service-api-ma:latest
+    container_name: stormpy-service-api-ma
+    ports:
+      - 8003:8001
+    environment:
+      COMPUTE_SYMMETRIES: COMPUTE_SYMMETRIES_YES
+    restart: always
+
+  ma-service-api:
+    platform: linux/amd64
+    image: dgbtechnologies/ma-service-api:latest
+    container_name: ma-service-api
+    ports:
+      - 8002:8000
+    volumes:
+      - ./projects:/home/projects
+    environment:
+      RMQ_USERNAME: guest
+      RMQ_PASSWORD: guest
+      RMQ_VHOST: auto_task
+      RMQ_HOST: rabbitmq-ma
+      RMQ_PORT: 5672
+      RMQ_VERIFICATION_QUEUE: MA_VERIFICATION
+      RMQ_EXPERIMENT_QUEUE: MA_EXPERIMENT
+      RMQ_BUILD_QUEUE: MA_BUILD
+      RMQ_STEADY_STATE_ANALYSIS_QUEUE: MA_STEADY_STATE_ANALYSIS
+      RMQ_SIMULATION_QUEUE: MA_SIMULATION
+      ANALYSIS_LOGS: ANALYSIS_LOGS_YES
+      STORMPY_SERVICE_HOST: stormpy-service-api-ma
+      STORMPY_SERVICE_PORT: 8001
+      BACKUP_FOLDER: /home/projects/
+    restart: always
+    
+  ma-service-ui:
+    platform: linux/amd64
+    image: dgbtechnologies/ma-service-ui:latest
+    container_name: ma-service-ui
+    ports:
+      - 8081:8080
+    restart: always
+    depends_on:
+      - ma-service-api
